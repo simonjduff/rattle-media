@@ -23,7 +23,12 @@ class TestController(TestCase):
 
     def test_creating_controller_logs_into_google(self):
         controller = rattlemedia.RattleMediaController()
-        self.mobileclient.return_value.login.assert_called_with('test_username', 'test_password')
+        self.mobileclient.return_value.login.assert_called_once_with('test_username', 'test_password')
+
+    def test_searcher_calls_api(self):
+        controller = rattlemedia.RattleMediaController()
+        controller.search('searchTerm')
+        self.mobileclient.return_value.search_all_access.assert_called_once_with('searchTerm')
 
     def cleanup(self):
         for patcher in self.patchers:
