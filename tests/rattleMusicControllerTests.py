@@ -18,6 +18,7 @@ class TestController(TestCase):
         config = config_patcher.start()
         config.google_username = 'test_username'
         config.google_password = 'test_password'
+        self.config = config
 
         self.controller = rattlemedia.RattleMediaController()
 
@@ -31,8 +32,14 @@ class TestController(TestCase):
         self.mobile_client.return_value.search_all_access.assert_called_once_with('searchTerm')
 
     def test_enqueue_adds_to_queue(self):
-        pass
-        # Todo create a new MusicPlayer class to encapsulate media state away from the controller
+        self.controller.enqueue('12345')
+        self.assertEqual(1, len(self.controller._music_player.queue))
+
+    def test_queue_with_one_song_plays_song(self):
+        self.controller.enqueue('12345')
+        self.controller.play()
+        self.mobile_client.return_value.get_stream_url.assert_called_once_with('12345', self.config.google_device_id)
+        # TODO mock out gstreamer and check that playbin2 is called with a test url
 
     def cleanup(self):
         for patcher in self.patchers:

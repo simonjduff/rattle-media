@@ -22,17 +22,34 @@ def setup_logging():
 setup_logging()
 
 
+class MusicPlayer:
+    def __init__(self):
+        self.queue = []
+
+    def enqueue(self, song_id):
+        self.queue.append(song_id)
+
+    def next_track_id(self):
+        return self.queue[0]
+
+
 class RattleMediaController:
     def __init__(self):
         api = Mobileclient()
         api.login(Config.google_username, Config.google_password)
-        self.__api = api
-
+        self._api = api
         self._logger = logging.getLogger('rattlemedia')
+        self._music_player = MusicPlayer()
 
     def search(self, search_term):
         self._logger.debug('Searching for {0}'.format(search_term))
-        return self.__api.search_all_access(search_term)
+        return self._api.search_all_access(search_term)
+
+    def enqueue(self, song_id):
+        self._music_player.enqueue(song_id)
+
+    def play(self):
+        self._api.get_stream_url(self._music_player.next_track_id(), Config.google_device_id)
 
 controller = RattleMediaController()
 
