@@ -5,7 +5,9 @@
 </div>
 <div class="container">
     <div class="row">
-        <input type="text" legnth="20" id="searchText" ng-model="searchText" placeholder="Search" />
-        <input type="button" id="searchButton" value="Search" ng-click="search()" />
+        <form ng-submit="searchSubmit()">
+            <input type="text" legnth="20" id="searchText" ng-model="searchText" placeholder="Search" />
+            <input type="submit" id="searchButton" value="Search" />
+        </form>
     </div>
 </div>
