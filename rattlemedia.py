@@ -5,7 +5,7 @@ from gmusicapi import Mobileclient
 
 application = Flask(__name__)
 application.config['SECRET_KEY'] = Config.secret_key
-socketio = SocketIO(application)
+socket_io = SocketIO(application)
 
 
 class RattleMediaController:
@@ -14,8 +14,8 @@ class RattleMediaController:
         api.login(Config.google_username, Config.google_password)
         self.__api = api
 
-    def search(self, searchTerm):
-        return self.__api.search_all_access(searchTerm)
+    def search(self, search_term):
+        return self.__api.search_all_access(search_term)
 
 controller = RattleMediaController()
 
@@ -23,11 +23,11 @@ controller = RattleMediaController()
 def index():
     return redirect('/static/index.html')
 
-@socketio.on('search')
+@socket_io.on('search')
 def search(search_term):
     results = controller.search(search_term)
     print results
     emit('search complete', results)
 
 if __name__ == '__main__':
-    socketio.run(application)
+    socket_io.run(application)
