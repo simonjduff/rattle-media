@@ -1,9 +1,17 @@
 from flask import Flask, redirect
 from flask_socketio import SocketIO, emit
+from config import Config
+from gmusicapi import Mobileclient
 
 application = Flask(__name__)
-application.config['SECRET_KEY'] = 'secret!' # Really not sure what this does
+application.config['SECRET_KEY'] = Config.secret_key
 socketio = SocketIO(application)
+
+
+class RattleMediaController:
+    def __init__(self):
+        api = Mobileclient()
+        api.login(Config.google_username, Config.google_password)
 
 @application.route('/')
 def index():
