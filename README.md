@@ -1,6 +1,8 @@
 # rattle-media
-Python based web application to play music from Google Play via gstreamer
+Python based web application to play music from Google Play via gstreamer.
+
 Initially, this will support only All Access accounts, with support for other accounts coming later.
+
 Work has only just begun.
 
 Setting up
