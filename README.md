@@ -5,14 +5,18 @@ Initially, this will support only All Access accounts, with support for other ac
 
 Work has only just begun.
 
+
 Setting up
 -------------------------------
 In the root folder, run pip install -r requirements.pip
+
 In /static, run bower install bower.json
+
 
 Config
 -------------------------------
 In the root folder, create config.py with the following contents:
+
   class Config:
     google_username="<your username>"
     google_password="<your password>"
