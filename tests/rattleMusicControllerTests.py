@@ -8,10 +8,13 @@ class TestController(TestCase):
     def setUp(self):
         self.patchers = []
 
+        self.fakeTrackUrl = 'https://fakestreamurl.example.com'
+
         mobile_client_patcher = patch('rattlemedia.Mobileclient')
         self.patchers.append(mobile_client_patcher)
         mobile_client = mobile_client_patcher.start()
         mobile_client.return_value.login = MagicMock()
+        mobile_client.return_value.get_stream_url.return_value = self.fakeTrackUrl
         self.mobile_client = mobile_client
 
         config_patcher = patch('rattlemedia.config')
@@ -49,6 +52,7 @@ class TestController(TestCase):
         self.controller.play()
         self.mobile_client.return_value.get_stream_url.assert_called_once_with('12345', self.config.google_device_id)
         self.player.set_state.assert_has_calls([call(gst.STATE_NULL), call(gst.STATE_PLAYING)])
+        self.player.set_property.assert_called_once_with('uri', self.fakeTrackUrl)
         # TDodo: generate mock method on api to return a fake song url, test this is passed to player
 
     def cleanup(self):

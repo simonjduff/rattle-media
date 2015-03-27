@@ -8,7 +8,7 @@
         }
 
         socketio.on('search complete', function(searchResults){
-            console.log(searchResults);
+            )
         });
     }]);
 })();
