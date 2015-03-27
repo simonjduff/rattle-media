@@ -17,8 +17,7 @@ Config
 -------------------------------
 In the root folder, create config.py with the following contents:
 
-    class Config:
-        google_username="<your username>"
-        google_password="<your password>"
-        google_device_id="<your device id>" # See the unofficial google music api for details on where to get this
-        secret_key="<some secret>"
+    google_username="<your username>"
+    google_password="<your password>"
+    google_device_id="<your device id>" # See the unofficial google music api for details on where to get this
+    secret_key="<some secret>"

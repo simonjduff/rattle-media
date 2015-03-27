@@ -13,7 +13,7 @@ class TestController(TestCase):
         mobile_client.return_value.login = MagicMock()
         self.mobile_client = mobile_client
 
-        config_patcher = patch('rattlemedia.Config')
+        config_patcher = patch('rattlemedia.config')
         self.patchers.append(config_patcher)
         config = config_patcher.start()
         config.google_username = 'test_username'

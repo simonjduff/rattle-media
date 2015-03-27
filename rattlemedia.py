@@ -1,12 +1,12 @@
 from flask import Flask, redirect
 from flask_socketio import SocketIO, emit
-from config import Config
+import config
 from gmusicapi import Mobileclient
 import logging
 import sys
 
 application = Flask(__name__)
-application.config['SECRET_KEY'] = Config.secret_key
+application.config['SECRET_KEY'] = config.secret_key
 socket_io = SocketIO(application)
 
 
@@ -36,7 +36,7 @@ class MusicPlayer:
 class RattleMediaController:
     def __init__(self):
         api = Mobileclient()
-        api.login(Config.google_username, Config.google_password)
+        api.login(config.google_username, config.google_password)
         self._api = api
         self._logger = logging.getLogger('rattlemedia')
         self._music_player = MusicPlayer()
@@ -49,7 +49,7 @@ class RattleMediaController:
         self._music_player.enqueue(song_id)
 
     def play(self):
-        self._api.get_stream_url(self._music_player.next_track_id(), Config.google_device_id)
+        self._api.get_stream_url(self._music_player.next_track_id(), config.google_device_id)
 
 controller = RattleMediaController()
 
