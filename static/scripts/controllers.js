@@ -9,5 +9,10 @@
         socketio.on('search complete', function(searchResults){
             $scope.searchResults = searchResults;
         });
+
+        $scope.playSong = function(songId){
+            console.log('playing song ' + songId)
+            socketio.emit('play song', songId);
+        }
     }]);
 })();

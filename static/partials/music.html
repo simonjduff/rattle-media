@@ -25,7 +25,7 @@
     <div class="row">
         <h1>Tracks</h1>
         <div class="col-md-4" ng-repeat="track in searchResults.song_hits">
-            {{track.track.title}}
+            <a class="trackTitle" ng-click="playSong(track.track.storeId)">{{track.track.title}}</a>
         </div>
     </div>
 </div>

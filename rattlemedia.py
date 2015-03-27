@@ -55,8 +55,8 @@ class RattleMediaController:
 
     def play(self):
         trackUrl = self._api.get_stream_url(self._music_player.dequeue(), config.google_device_id)
-        RattleMediaController._player.set_state(gst.STATE_PLAYING)
         RattleMediaController._player.set_property('uri', trackUrl)
+        RattleMediaController._player.set_state(gst.STATE_PLAYING)
 
     def stop(self):
         self._player.set_state(gst.STATE_NULL)
@@ -72,6 +72,14 @@ def search(search_term):
     results = controller.search(search_term)
     print results
     emit('search complete', results)
+
+# This isn't quite right as an API. Play should probably clear the queue then play the specified song.
+@socket_io.on('play song')
+def play_song(song_id):
+    logger = logging.getLogger('rattlemedia')
+    logger.info('Playing song {0}'.format(song_id))
+    controller.enqueue(song_id)
+    controller.play()
 
 if __name__ == '__main__':
     socket_io.run(application)
