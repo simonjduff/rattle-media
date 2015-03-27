@@ -44,8 +44,10 @@ class TestController(TestCase):
         self.mobile_client.return_value.search_all_access.assert_called_once_with('searchTerm')
 
     def test_enqueue_adds_to_queue(self):
-        self.controller.enqueue('12345')
+        song_id = '12345'
+        self.controller.enqueue(song_id)
         self.assertEqual(1, len(self.controller._music_player.queue))
+        self.assertEqual(song_id, self.controller._music_player.queue[0])
 
     def test_queue_with_one_song_plays_song(self):
         self.controller.enqueue('12345')
@@ -53,8 +55,13 @@ class TestController(TestCase):
         self.mobile_client.return_value.get_stream_url.assert_called_once_with('12345', self.config.google_device_id)
         self.player.set_state.assert_has_calls([call(gst.STATE_NULL), call(gst.STATE_PLAYING)])
         self.player.set_property.assert_called_once_with('uri', self.fakeTrackUrl)
+        self.assertEqual(0, len(self.controller._music_player.queue))
+
+    def test_stop_nulls_state(self):
+        self.controller.stop()
+        self.player.set_state.assert_has_calls([call(gst.STATE_NULL), call(gst.STATE_NULL)])
 
     def cleanup(self):
-        for patcher in self.patchers:
-            patcher.stop
-        self.patchers = []
+        while self.patchers:
+            patcher = self.patchers.pop()
+            patcher.stop()

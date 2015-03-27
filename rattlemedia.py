@@ -5,6 +5,7 @@ from gmusicapi import Mobileclient
 import logging
 import sys
 import gst
+from collections import deque
 
 application = Flask(__name__)
 application.config['SECRET_KEY'] = config.secret_key
@@ -26,13 +27,13 @@ setup_logging()
 
 class MusicPlayer:
     def __init__(self):
-        self.queue = []
+        self.queue = deque([])
 
     def enqueue(self, song_id):
         self.queue.append(song_id)
 
-    def next_track_id(self):
-        return self.queue[0]
+    def dequeue(self):
+        return self.queue.popleft()
 
 
 class RattleMediaController:
@@ -53,9 +54,12 @@ class RattleMediaController:
         self._music_player.enqueue(song_id)
 
     def play(self):
-        trackUrl = self._api.get_stream_url(self._music_player.next_track_id(), config.google_device_id)
+        trackUrl = self._api.get_stream_url(self._music_player.dequeue(), config.google_device_id)
         RattleMediaController._player.set_state(gst.STATE_PLAYING)
         RattleMediaController._player.set_property('uri', trackUrl)
+
+    def stop(self):
+        self._player.set_state(gst.STATE_NULL)
 
 controller = RattleMediaController()
 
