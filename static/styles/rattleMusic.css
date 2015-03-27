@@ -1,3 +1,22 @@
 .trackTitle {
     cursor:pointer;
 }
+
+.artistArtwork, .albumArtwork{
+    display:block;
+}
+
+.artistArtwork{
+    width:330px;
+    height:165px;
+}
+
+.albumArtwork{
+    width:160px;
+    height:160px;
+}
+
+.trackArtwork{
+    width:40px;
+    height:40px;
+}
