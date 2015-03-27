@@ -4,10 +4,12 @@ import config
 from gmusicapi import Mobileclient
 import logging
 import sys
+import gst
 
 application = Flask(__name__)
 application.config['SECRET_KEY'] = config.secret_key
 socket_io = SocketIO(application)
+
 
 
 def setup_logging():
@@ -34,12 +36,14 @@ class MusicPlayer:
 
 
 class RattleMediaController:
+    _player = gst.element_factory_make('playbin2', 'player')
     def __init__(self):
         api = Mobileclient()
         api.login(config.google_username, config.google_password)
         self._api = api
         self._logger = logging.getLogger('rattlemedia')
         self._music_player = MusicPlayer()
+        RattleMediaController._player.set_state(gst.STATE_NULL)
 
     def search(self, search_term):
         self._logger.debug('Searching for {0}'.format(search_term))
@@ -50,6 +54,7 @@ class RattleMediaController:
 
     def play(self):
         self._api.get_stream_url(self._music_player.next_track_id(), config.google_device_id)
+        RattleMediaController._player.set_state(gst.STATE_PLAYING)
 
 controller = RattleMediaController()
 
