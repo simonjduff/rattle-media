@@ -53,7 +53,6 @@ class TestController(TestCase):
         self.mobile_client.return_value.get_stream_url.assert_called_once_with('12345', self.config.google_device_id)
         self.player.set_state.assert_has_calls([call(gst.STATE_NULL), call(gst.STATE_PLAYING)])
         self.player.set_property.assert_called_once_with('uri', self.fakeTrackUrl)
-        # TDodo: generate mock method on api to return a fake song url, test this is passed to player
 
     def cleanup(self):
         for patcher in self.patchers:
