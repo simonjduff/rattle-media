@@ -11,8 +11,12 @@
         });
 
         $scope.playSong = function(songId){
-            console.log('playing song ' + songId)
+            console.log('playing song ' + songId);
             socketio.emit('play song', songId);
+        }
+
+        $scope.stopPlaying = function(){
+            socketio.emit('stop');
         }
     }]);
 })();

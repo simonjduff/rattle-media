@@ -11,9 +11,10 @@ application = Flask(__name__)
 application.config['SECRET_KEY'] = config.secret_key
 socket_io = SocketIO(application)
 
-
+logger = None
 
 def setup_logging():
+    global logger
     log_formatter = logging.Formatter('[%(asctime)s] %(levelname)s (%(process)d) %(module)s: %(message)s')
     stream_handle = logging.StreamHandler(sys.stdout)
     stream_handle.setLevel(logging.DEBUG)
@@ -61,10 +62,14 @@ class RattleMediaController:
     def stop(self):
         self._player.set_state(gst.STATE_NULL)
 
+    def toggle_playback(self):
+        self._player.set_state(gst.STATE_PAUSED)
+
 controller = RattleMediaController()
 
 @application.route('/')
 def index():
+    logger.info('starting')
     return redirect('/static/index.html')
 
 @socket_io.on('search')
@@ -76,10 +81,14 @@ def search(search_term):
 # This isn't quite right as an API. Play should probably clear the queue then play the specified song.
 @socket_io.on('play song')
 def play_song(song_id):
-    logger = logging.getLogger('rattlemedia')
     logger.info('Playing song {0}'.format(song_id))
     controller.enqueue(song_id)
     controller.play()
+
+@socket_io.on('stop')
+def stop(message):
+    logger.info('stopping')
+    controller.stop()
 
 if __name__ == '__main__':
     socket_io.run(application)

@@ -61,6 +61,13 @@ class TestController(TestCase):
         self.controller.stop()
         self.player.set_state.assert_has_calls([call(gst.STATE_NULL), call(gst.STATE_NULL)])
 
+    def test_toggle_when_playing_pauses(self):
+        self.controller.enqueue('12345')
+        self.controller.play()
+        self.player.set_state.assert_has_calls([call(gst.STATE_NULL), call(gst.STATE_PLAYING)])
+        self.controller.toggle_playback()
+        self.player.set_state.assert_has_calls([call(gst.STATE_NULL), call(gst.STATE_PLAYING), call(gst.STATE_PAUSED)])
+
     def cleanup(self):
         while self.patchers:
             patcher = self.patchers.pop()
