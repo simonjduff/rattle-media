@@ -22,5 +22,9 @@
         $scope.togglePlayback = function(){
             socketio.emit('toggle playback');
         }
+
+        $scope.playAlbum = function(albumId){
+            socketio.emit('play album', albumId);
+        }
     }]);
 })();

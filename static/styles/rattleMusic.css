@@ -10,6 +10,7 @@
 
 .trackListing, .albumListing, .artistListing{
     margin-bottom:30px;
+    cursor: pointer;
 }
 
 .artistArtwork{

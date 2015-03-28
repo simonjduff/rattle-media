@@ -43,6 +43,9 @@ class MusicPlayer:
         except IndexError:
             raise EmptySongQueue
 
+    def clear(self):
+        self.queue.clear()
+
 
 class RattleMediaController:
     _player = gst.element_factory_make('playbin2', 'player')
@@ -75,6 +78,16 @@ class RattleMediaController:
     def toggle_playback(self):
         self._player.set_state(gst.STATE_PAUSED)
 
+    def play_album(self, album_id):
+        self.stop()
+        album = self._api.get_album_info(album_id)
+        tracks = album['tracks']
+        self._music_player.clear()
+        for track in tracks:
+            self._music_player.enqueue(track['nid'])
+        self.play()
+
+
 controller = RattleMediaController()
 
 @application.route('/')
@@ -104,6 +117,11 @@ def stop(message):
 def toggle_playback(message):
     logger.info('toggling')
     controller.toggle_playback()
+
+@socket_io.on('play album')
+def play_album(album_id):
+    logger.info('playing album {0}'.format(album_id))
+    controller.play_album(album_id)
 
 if __name__ == '__main__':
     socket_io.run(application)
