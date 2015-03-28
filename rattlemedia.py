@@ -26,6 +26,10 @@ def setup_logging():
 setup_logging()
 
 
+class EmptySongQueue(Exception):
+    pass
+
+
 class MusicPlayer:
     def __init__(self):
         self.queue = deque([])
@@ -34,7 +38,10 @@ class MusicPlayer:
         self.queue.append(song_id)
 
     def dequeue(self):
-        return self.queue.popleft()
+        try:
+            return self.queue.popleft()
+        except IndexError:
+            raise EmptySongQueue
 
 
 class RattleMediaController:
@@ -55,9 +62,12 @@ class RattleMediaController:
         self._music_player.enqueue(song_id)
 
     def play(self):
-        trackUrl = self._api.get_stream_url(self._music_player.dequeue(), config.google_device_id)
-        RattleMediaController._player.set_property('uri', trackUrl)
-        RattleMediaController._player.set_state(gst.STATE_PLAYING)
+        try:
+            trackUrl = self._api.get_stream_url(self._music_player.dequeue(), config.google_device_id)
+            RattleMediaController._player.set_property('uri', trackUrl)
+            RattleMediaController._player.set_state(gst.STATE_PLAYING)
+        except EmptySongQueue:
+            pass
 
     def stop(self):
         self._player.set_state(gst.STATE_NULL)

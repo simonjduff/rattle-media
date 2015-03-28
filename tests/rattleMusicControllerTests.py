@@ -57,6 +57,10 @@ class TestController(TestCase):
         self.player.set_property.assert_called_once_with('uri', self.fakeTrackUrl)
         self.assertEqual(0, len(self.controller._music_player.queue))
 
+    def test_Empty_queue_doesnt_play(self):
+        self.controller.play()
+        self.player.set_state.assert_called_once_with(gst.STATE_NULL)
+
     def test_stop_nulls_state(self):
         self.controller.stop()
         self.player.set_state.assert_has_calls([call(gst.STATE_NULL), call(gst.STATE_NULL)])
