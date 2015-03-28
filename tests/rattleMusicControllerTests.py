@@ -5,16 +5,16 @@ import gst
 
 
 class TestController(TestCase):
+    fake_song_urls = {'12345': 'http://testurl1.example.com', '67890': 'http://testurl2.example.com'}
+
     def setUp(self):
         self.patchers = []
-
-        self.fakeTrackUrl = 'https://fakestreamurl.example.com'
 
         mobile_client_patcher = patch('rattlemedia.Mobileclient')
         self.patchers.append(mobile_client_patcher)
         mobile_client = mobile_client_patcher.start()
         mobile_client.return_value.login = MagicMock()
-        mobile_client.return_value.get_stream_url.return_value = self.fakeTrackUrl
+        mobile_client.return_value.get_stream_url = MagicMock(side_effect=self.get_fake_url)
         self.mobile_client = mobile_client
 
         config_patcher = patch('rattlemedia.config')
@@ -28,10 +28,12 @@ class TestController(TestCase):
         self.patchers.append(player_patcher)
         self.player = player_patcher.start()
 
-
         self.controller = rattlemedia.RattleMediaController()
 
         self.addCleanup(self.cleanup)
+
+    def get_fake_url(self, song_id, device_id):
+        return TestController.fake_song_urls[song_id]
 
     def test_creating_controller_logs_into_google(self):
         self.mobile_client.return_value.login.assert_called_once_with('test_username', 'test_password')
@@ -49,12 +51,12 @@ class TestController(TestCase):
         self.assertEqual(1, len(self.controller._music_player.queue))
         self.assertEqual(song_id, self.controller._music_player.queue[0])
 
-    def test_queue_with_one_song_plays_song(self):
+    def test_play_with_one_song_plays_song(self):
         self.controller.enqueue('12345')
         self.controller.play()
         self.mobile_client.return_value.get_stream_url.assert_called_once_with('12345', self.config.google_device_id)
         self.player.set_state.assert_has_calls([call(gst.STATE_NULL), call(gst.STATE_PLAYING)])
-        self.player.set_property.assert_called_once_with('uri', self.fakeTrackUrl)
+        self.player.set_property.assert_called_once_with('uri', TestController.fake_song_urls['12345'])
         self.assertEqual(0, len(self.controller._music_player.queue))
 
     def test_Empty_queue_doesnt_play(self):

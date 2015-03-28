@@ -63,8 +63,8 @@ class RattleMediaController:
 
     def play(self):
         try:
-            trackUrl = self._api.get_stream_url(self._music_player.dequeue(), config.google_device_id)
-            RattleMediaController._player.set_property('uri', trackUrl)
+            track_url = self._api.get_stream_url(self._music_player.dequeue(), config.google_device_id)
+            RattleMediaController._player.set_property('uri', track_url)
             RattleMediaController._player.set_state(gst.STATE_PLAYING)
         except EmptySongQueue:
             pass
