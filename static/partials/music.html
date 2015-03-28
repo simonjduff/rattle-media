@@ -9,9 +9,6 @@
             <input type="text" legnth="20" id="searchText" ng-model="searchText" placeholder="Search" />
             <input type="submit" id="searchButton" value="Search" />
         </form>
-        <div>
-            <input type="button" value="Stop" ng-click="stopPlaying()" />
-        </div>
     </div>
     <div class="row">
         <h1>Artists</h1>
@@ -33,5 +30,11 @@
             <img class="trackArtwork" src="{{track.track.albumArtRef[0].url}}" alt="Artwork for track {{track.track.title}}" title="{{track.track.title}}" />
             <a class="trackTitle" ng-click="playSong(track.track.storeId)">{{track.track.title}}</a>
         </div>
+    </div>
+</div>
+<div class="player">
+    <div class="playerControls">
+        <input type="button" value="Stop" ng-click="stopPlaying()" />
+        <input type="button" value="Play/Pause" ng-click="togglePlayback()" />
     </div>
 </div>

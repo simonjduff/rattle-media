@@ -90,5 +90,10 @@ def stop(message):
     logger.info('stopping')
     controller.stop()
 
+@socket_io.on('toggle playback')
+def toggle_playback(message):
+    logger.info('toggling')
+    controller.toggle_playback()
+
 if __name__ == '__main__':
     socket_io.run(application)

@@ -18,5 +18,9 @@
         $scope.stopPlaying = function(){
             socketio.emit('stop');
         }
+
+        $scope.togglePlayback = function(){
+            socketio.emit('toggle playback');
+        }
     }]);
 })();
