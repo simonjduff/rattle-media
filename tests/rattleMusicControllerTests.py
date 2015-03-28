@@ -46,11 +46,15 @@ class TestController(TestCase):
 
     def test_enqueue_adds_to_queue(self):
         song_id = '12345'
+        song_id_2 = '12345'
         self.controller.enqueue(song_id)
         self.assertEqual(1, len(self.controller._music_player.queue))
         self.assertEqual(song_id, self.controller._music_player.queue[0])
+        self.controller.enqueue(song_id_2)
+        self.assertEqual(2, len(self.controller._music_player.queue))
+        self.assertEqual(song_id_2, self.controller._music_player.queue[1])
 
-    def test_play_with_one_song_plays_song(self):
+    def test_play_removes_song_from_queue_and_plays(self):
         self.controller.enqueue('12345')
         self.controller.play()
         self.mobile_client.return_value.get_stream_url.assert_called_once_with('12345', self.config.google_device_id)
@@ -58,7 +62,7 @@ class TestController(TestCase):
         self.player.set_property.assert_called_once_with('uri', TestController.fake_song_urls['12345'])
         self.assertEqual(0, len(self.controller._music_player.queue))
 
-    def test_Empty_queue_doesnt_play(self):
+    def test_play_empty_queue_doesnt_play(self):
         self.controller.play()
         self.player.set_state.assert_called_once_with(gst.STATE_NULL)
 
