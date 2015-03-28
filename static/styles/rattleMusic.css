@@ -1,9 +1,15 @@
 .trackTitle {
     cursor:pointer;
+    margin-left:40px;
+    display:block;
 }
 
 .artistArtwork, .albumArtwork{
     display:block;
+}
+
+.trackListing, .albumListing, .artistListing{
+    margin-bottom:30px;
 }
 
 .artistArtwork{
@@ -19,6 +25,7 @@
 .trackArtwork{
     width:40px;
     height:40px;
+    float:left;
 }
 
 .player{
@@ -33,4 +40,16 @@
     margin-left:auto;
     margin-right:auto;
     width:50px;
+}
+
+.playButton{
+    background-image: url("/static/images/playButton.svg");
+    cursor:pointer;
+    background-repeat:no-repeat;
+}
+
+.playerControls .playButton{
+    background-size: 150px 90px;
+    width:150px;
+    height:90px;
 }
