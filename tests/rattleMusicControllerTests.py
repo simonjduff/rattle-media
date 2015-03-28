@@ -8,13 +8,15 @@ class TestController(TestCase):
     fake_song_urls = {'12345': 'http://testurl1.example.com', '67890': 'http://testurl2.example.com'}
 
     def setUp(self):
+        def get_fake_url(song_id, device_id):
+            return TestController.fake_song_urls[song_id]
         self.patchers = []
 
         mobile_client_patcher = patch('rattlemedia.Mobileclient')
         self.patchers.append(mobile_client_patcher)
         mobile_client = mobile_client_patcher.start()
         mobile_client.return_value.login = MagicMock()
-        mobile_client.return_value.get_stream_url = MagicMock(side_effect=self.get_fake_url)
+        mobile_client.return_value.get_stream_url = MagicMock(side_effect=get_fake_url)
         self.mobile_client = mobile_client
 
         config_patcher = patch('rattlemedia.config')
@@ -31,9 +33,6 @@ class TestController(TestCase):
         self.controller = rattlemedia.RattleMediaController()
 
         self.addCleanup(self.cleanup)
-
-    def get_fake_url(self, song_id, device_id):
-        return TestController.fake_song_urls[song_id]
 
     def test_creating_controller_logs_into_google(self):
         self.mobile_client.return_value.login.assert_called_once_with('test_username', 'test_password')
