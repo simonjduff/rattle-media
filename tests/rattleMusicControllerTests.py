@@ -30,7 +30,6 @@ class TestBase(TestCase):
         self.bus_messages.append(message)
 
     def pop_bus_message(self):
-        message = None
         try:
             message = self.bus_messages.popleft()
         except IndexError:
@@ -50,7 +49,6 @@ class TestBase(TestCase):
 
         def get_state(timeout):
             return (Gst.StateChangeReturn.SUCCESS, self.player.state, Gst.State.NULL)
-
 
         self.patchers = []
         self.bus_messages = deque([])
@@ -146,6 +144,7 @@ class TestPlaying(TestBase):
     def test_toggle_pauses(self):
         self.controller.toggle_playback()
         self.assertEqual(self.controller._states[Gst.State.PAUSED], self.controller.state)
+
 
 class TestPaused(TestBase):
     def setUp(self):
