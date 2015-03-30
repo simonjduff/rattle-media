@@ -91,8 +91,7 @@ class RattleMediaController:
         self.state = PlayerState(self, RattleMediaController._player)
         self.update_state()
 
-    @staticmethod
-    def watch_for_message(media_player):
+    def watch_for_message(self):
         bus = RattleMediaController._player.get_bus()
         logger = logging.getLogger('rattlemedia')
         if not bus:
@@ -106,11 +105,11 @@ class RattleMediaController:
                 logger.debug('Message received: {0}'.format(message.type))
                 if message.type == Gst.MessageType.EOS:
                     logger.info('End of stream received')
-                    media_player._player.set_state(Gst.State.NULL)
-                    media_player.update_state()
-                    media_player.play()
+                    self._player.set_state(Gst.State.NULL)
+                    self.update_state()
+                    self.play()
                 elif message.type == Gst.MessageType.STATE_CHANGED:
-                    logger.debug('State changed {0}'.format(media_player._player.get_state(100)[1]))
+                    logger.debug('State changed {0}'.format(self._player.get_state(100)[1]))
 
             if not message:
                 gevent.sleep(0.5)
@@ -146,10 +145,7 @@ class RattleMediaController:
         try:
             logger = logging.getLogger('rattlemedia')
             current_state = RattleMediaController._player.get_state(Gst.CLOCK_TIME_NONE)[1]
-            logger.info('Switching state to {0}'.format(current_state))
-            logger.debug('My states: {0} {1} equal? {2}'.format(current_state,
-                                                                      Gst.State.PLAYING,
-                                                                      current_state == Gst.State.PLAYING))
+            logger.debug('Switching state to {0}'.format(current_state))
             self.state = RattleMediaController._states[current_state]
             logger.info('Switched state to {0}'.format(self.state))
         except KeyError:
