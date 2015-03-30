@@ -1,85 +1,62 @@
+from flask import Flask, redirect
+from flask_socketio import SocketIO, emit
+from rattlemediaplayer import RattleMediaController
 import config
-from gmusicapi import Mobileclient
 import logging
-from gi.repository import Gst, GLib
-from collections import deque
-from gevent import Greenlet
-import gevent
+import sys
 
+application = Flask(__name__)
+application.config['SECRET_KEY'] = config.secret_key
+socket_io = SocketIO(application)
 
-class RattleMediaController:
-    _player = None
+logger = None
 
-    def __init__(self):
-        Gst.init(None)
-        RattleMediaController._player = Gst.ElementFactory.make('playbin', None)
+def setup_logging():
+    global logger
+    log_formatter = logging.Formatter('[%(asctime)s] %(levelname)s (%(process)d) %(module)s: %(message)s')
+    stream_handle = logging.StreamHandler(sys.stdout)
+    stream_handle.setLevel(logging.DEBUG)
+    stream_handle.setFormatter(log_formatter)
+    logger = logging.getLogger('rattlemedia')
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(stream_handle)
 
-        if not RattleMediaController._player:
-            raise Exception('Player is None')
+setup_logging()
 
-        api = Mobileclient()
-        api.login(config.google_username, config.google_password)
-        self._api = api
-        self._logger = logging.getLogger('rattlemedia')
-        RattleMediaController._player.set_state(Gst.State.NULL)
+controller = RattleMediaController()
 
-        self._logger.info('Starting to watch for gstreamer signals')
-        Greenlet.spawn(RattleMediaController.watch_for_message, self)
+@application.route('/')
+def index():
+    logger.info('Loading home page')
+    return redirect('/static/index.html')
 
-        self._queue = deque([])
+@socket_io.on('search')
+def search(search_term):
+    results = controller.search(search_term)
+    print results
+    emit('search complete', results)
 
-    @staticmethod
-    def watch_for_message(media_player):
-        bus = RattleMediaController._player.get_bus()
-        logger = logging.getLogger('rattlemedia')
-        if not bus:
-            raise Exception('Couldn\'t create bus')
-        # Ideally we'd be using signal_watch on bus to fire on an event basis
-        # but getting the GLib main loop to work with gevent has proved problematic
-        # Polling works, but isn't as elegant
-        while True:
-            message = bus.pop()
-            if message:
-                logger.debug('Message received: {0}'.format(message.type))
-                if message.type == Gst.MessageType.EOS:
-                    logger.info('End of stream received')
-                    RattleMediaController._player.set_state(Gst.State.NULL)
-                    media_player.play()
+# This isn't quite right as an API. Play should probably clear the queue then play the specified song.
+@socket_io.on('play song')
+def play_song(song_id):
+    logger.info('Playing song {0}'.format(song_id))
+    controller.enqueue(song_id)
+    controller.play()
 
-            if not message:
-                gevent.sleep(0.5)
+@socket_io.on('stop')
+def stop(message):
+    logger.info('stopping')
+    controller.stop()
 
-    def search(self, search_term):
-        self._logger.debug('Searching for {0}'.format(search_term))
-        return self._api.search_all_access(search_term)
+@socket_io.on('toggle playback')
+def toggle_playback(message):
+    logger.info('toggling')
+    controller.toggle_playback()
 
-    def enqueue(self, song_id):
-        self._logger.info('Enqueuing {0}'.format(song_id))
-        self._queue.append(song_id)
+@socket_io.on('play album')
+def play_album(album_id):
+    logger.info('playing album {0}'.format(album_id))
+    controller.play_album(album_id)
 
-    def play(self):
-        self._logger.info('Playing')
-        try:
-            track_url = self._api.get_stream_url(self._queue.popleft(), config.google_device_id)
-            RattleMediaController._player.set_property('uri', track_url)
-            RattleMediaController._player.set_state(Gst.State.PLAYING)
-        except IndexError:
-            RattleMediaController._player.set_state(Gst.State.NULL)
-
-    def stop(self):
-        self._logger.info('Stopping')
-        self._player.set_state(Gst.State.NULL)
-
-    def toggle_playback(self):
-        self._logger.info('Toggling')
-        self._player.set_state(Gst.State.PAUSED)
-
-    def play_album(self, album_id):
-        self._logger.info('Playing album {0}'.format(album_id))
-        self.stop()
-        album = self._api.get_album_info(album_id)
-        tracks = album['tracks']
-        self._queue.clear()
-        for track in tracks:
-            self._queue.append(track['nid'])
-        self.play()
+if __name__ == '__main__':
+    socket_io.run(application)

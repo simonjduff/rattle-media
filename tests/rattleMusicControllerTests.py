@@ -1,6 +1,6 @@
 from unittest import TestCase
 from mock import patch, MagicMock, call
-import rattlemedia
+import rattlemediaplayer
 from gi.repository import Gst
 import logging
 import sys
@@ -35,14 +35,14 @@ class TestController(TestCase):
 
         self.patchers = []
 
-        mobile_client_patcher = patch('rattlemedia.Mobileclient')
+        mobile_client_patcher = patch('rattlemediaplayer.Mobileclient')
         self.patchers.append(mobile_client_patcher)
         mobile_client = mobile_client_patcher.start()
         mobile_client.return_value.login.side_effect=logging_in
         mobile_client.return_value.get_stream_url = MagicMock(side_effect=get_fake_url)
         self.mobile_client = mobile_client
 
-        config_patcher = patch('rattlemedia.config')
+        config_patcher = patch('rattlemediaplayer.config')
         self.patchers.append(config_patcher)
         config = config_patcher.start()
         config.google_username = 'test_username'
@@ -51,12 +51,12 @@ class TestController(TestCase):
 
         self.player = MagicMock()
         self.player.set_state.side_effect=set_state
-        player_make_patcher = patch.object(rattlemedia.Gst.ElementFactory, 'make')
+        player_make_patcher = patch.object(rattlemediaplayer.Gst.ElementFactory, 'make')
         self.patchers.append(player_make_patcher)
         player_make = player_make_patcher.start()
         player_make.return_value = self.player
 
-        self.controller = rattlemedia.RattleMediaController()
+        self.controller = rattlemediaplayer.RattleMediaController()
 
         self.addCleanup(self.cleanup)
 
