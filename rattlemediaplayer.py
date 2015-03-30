@@ -7,8 +7,63 @@ from gevent import Greenlet
 import gevent
 
 
+class PlayerState:
+    def __init__(self, controller, player):
+        self._player = player
+        self._controller = controller
+        self._logger = logging.getLogger('rattlemedia')
+
+    def play(self):
+        self._logger.info('Playing')
+        try:
+            # This sucks a bit. Should state own the api?
+            track_url = self._controller._api.get_stream_url(self._controller._queue.popleft(), config.google_device_id)
+            self._player.set_property('uri', track_url)
+            self._player.set_state(Gst.State.PLAYING)
+        except IndexError:
+            self._logger.info('Queue empty. Stopping.')
+            self._player.set_state(Gst.State.NULL)
+        finally:
+            self._controller.update_state()
+
+    def stop(self):
+        self._logger.info('Stopping')
+        self._player.set_state(Gst.State.NULL)
+        self._controller.update_state()
+
+    def toggle(self):
+        pass
+
+
+class PlayerStatePlaying(PlayerState):
+    def play(self):
+        pass
+
+    def toggle(self):
+        self._player.set_state(Gst.State.PAUSED)
+        self._controller.update_state()
+
+
+class PlayerStateStopped(PlayerState):
+    def stop(self):
+        pass
+
+    def toggle(self):
+        pass
+
+
+class PlayerStatePaused(PlayerState):
+    def play(self):
+        self._player.set_state(Gst.State.PLAYING)
+        self._controller.update_state()
+
+    def toggle(self):
+        self.play()
+
+
 class RattleMediaController:
     _player = None
+    _states = None
 
     def __init__(self):
         Gst.init(None)
@@ -28,12 +83,12 @@ class RattleMediaController:
 
         self._queue = deque([])
 
-        self._states = {Gst.State.PAUSED: RattleMediaController.PlayerStatePaused(self, self._player),
-                        Gst.State.NULL: RattleMediaController.PlayerStateStopped(self, self._player),
-                        Gst.State.PLAYING: RattleMediaController.PlayerStatePlaying(self, self._player),
-                        'Unknown': RattleMediaController.PlayerState(self, self._player)}
+        RattleMediaController._states = {Gst.State.PAUSED: PlayerStatePaused(self, RattleMediaController._player),
+                                         Gst.State.NULL: PlayerStateStopped(self, RattleMediaController._player),
+                                         Gst.State.PLAYING: PlayerStatePlaying(self, RattleMediaController._player),
+                                         'Unknown': PlayerState(self, RattleMediaController._player)}
 
-        self.state = RattleMediaController.PlayerState
+        self.state = PlayerState(self, RattleMediaController._player)
         self.update_state()
 
     @staticmethod
@@ -53,6 +108,8 @@ class RattleMediaController:
                     logger.info('End of stream received')
                     RattleMediaController._player.set_state(Gst.State.NULL)
                     media_player.play()
+                elif message.type == Gst.MessageType.STATE_CHANGED:
+                    logger.debug('State changed {0}'.format(media_player._player.get_state(100)[1]))
 
             if not message:
                 gevent.sleep(0.5)
@@ -86,63 +143,15 @@ class RattleMediaController:
 
     def update_state(self):
         try:
-            current_state = self._player.get_state(Gst.CLOCK_TIME_NONE)[1]
-            self._logger.info('Switching state to {0}'.format(current_state))
-            self._logger.debug('My states: {0} {1} equal? {2}'.format(current_state,
+            logger = logging.getLogger('rattlemedia')
+            current_state = RattleMediaController._player.get_state(Gst.CLOCK_TIME_NONE)[1]
+            logger.info('Switching state to {0}'.format(current_state))
+            logger.debug('My states: {0} {1} equal? {2}'.format(current_state,
                                                                       Gst.State.PLAYING,
                                                                       current_state == Gst.State.PLAYING))
-            self.state = self._states[current_state]
-            self._logger.info('Switched state to {0}'.format(self.state))
+            self.state = RattleMediaController._states[current_state]
+            logger.info('Switched state to {0}'.format(self.state))
         except KeyError:
-            self._logger.warn('Switching to unknown state {0}'.format(current_state))
-            self.state = self._states['Unknown']
+            logger.warn('Switching to unknown state {0}'.format(current_state))
+            self.state = RattleMediaController._states['Unknown']
 
-    class PlayerState:
-        def __init__(self, controller, player):
-            self._player = player
-            self._controller = controller
-            self._logger = logging.getLogger('rattlemedia')
-
-        def play(self):
-            self._logger.info('Playing')
-            try:
-                # This sucks a bit. Should state own the api?
-                track_url = self._controller._api.get_stream_url(self._controller._queue.popleft(), config.google_device_id)
-                self._player.set_property('uri', track_url)
-                self._player.set_state(Gst.State.PLAYING)
-            except IndexError:
-                self._logger.info('Queue empty. Stopping.')
-                self._player.set_state(Gst.State.NULL)
-            finally:
-                self._controller.update_state()
-
-        def stop(self):
-            self._logger.info('Stopping')
-            self._player.set_state(Gst.State.NULL)
-            self._controller.update_state()
-
-        def toggle(self):
-            pass
-
-    class PlayerStatePlaying(PlayerState):
-        def play(self):
-            pass
-
-        def toggle(self):
-            self._player.set_state(Gst.State.PAUSED)
-            self._controller.update_state()
-
-    class PlayerStateStopped(PlayerState):
-        def stop(self):
-            pass
-
-        def toggle(self):
-            pass
-
-    class PlayerStatePaused(PlayerState):
-        def play(self):
-            self._player.set_state(Gst.State.PLAYING)
-            self._controller.update_state()
-
-        def toggle(self):
-            self.play()
