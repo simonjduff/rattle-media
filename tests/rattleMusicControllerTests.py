@@ -27,18 +27,17 @@ class TestController(TestCase):
         def get_fake_url(song_id, device_id):
             return TestController.fake_song_urls[song_id]
 
-        def logging_in(username, password):
-            print 'Logging into mock'
-
         def set_state(state):
-            print 'Setting state {0}'.format(state)
+            self.player.state = state
+
+        def get_state(timeout):
+            return (Gst.StateChangeReturn.SUCCESS, self.player.state, Gst.State.NULL)
 
         self.patchers = []
 
         mobile_client_patcher = patch('rattlemediaplayer.Mobileclient')
         self.patchers.append(mobile_client_patcher)
         mobile_client = mobile_client_patcher.start()
-        mobile_client.return_value.login.side_effect=logging_in
         mobile_client.return_value.get_stream_url = MagicMock(side_effect=get_fake_url)
         self.mobile_client = mobile_client
 
@@ -50,7 +49,8 @@ class TestController(TestCase):
         self.config = config
 
         self.player = MagicMock()
-        self.player.set_state.side_effect=set_state
+        self.player.set_state = set_state
+        self.player.get_state = get_state
         player_make_patcher = patch.object(rattlemediaplayer.Gst.ElementFactory, 'make')
         self.patchers.append(player_make_patcher)
         player_make = player_make_patcher.start()
@@ -64,7 +64,7 @@ class TestController(TestCase):
         self.mobile_client.return_value.login.assert_called_once_with('test_username', 'test_password')
 
     def test_creating_controller_sets_state_null(self):
-        self.player.set_state.assert_called_once_with(Gst.State.NULL)
+        self.assertEqual(Gst.State.NULL, self.player.state)
 
     def test_searcher_calls_api(self):
         self.controller.search('searchTerm')
@@ -84,7 +84,7 @@ class TestController(TestCase):
         self.controller.enqueue('12345')
         self.controller.play()
         self.mobile_client.return_value.get_stream_url.assert_called_once_with('12345', self.config.google_device_id)
-        self.player.set_state.assert_has_calls([call(Gst.State.NULL), call(Gst.State.PLAYING)])
+        self.assertEqual(Gst.State.PLAYING, self.controller._player.state)
         self.player.set_property.assert_called_once_with('uri', TestController.fake_song_urls['12345'])
         self.assertEqual(0, len(self.controller._queue))
 
@@ -93,18 +93,18 @@ class TestController(TestCase):
             print ' '.join(str(p) for p in self.controller._queue)
         self.assertEqual(0, len(self.controller._queue))
         self.controller.play()
-        self.player.set_state.assert_has_calls([call(Gst.State.NULL), call(Gst.State.NULL)])
+        self.assertEqual(Gst.State.NULL, self.controller._player.state)
 
     def test_stop_nulls_state(self):
         self.controller.stop()
-        self.player.set_state.assert_has_calls([call(Gst.State.NULL), call(Gst.State.NULL)])
+        self.assertEqual(Gst.State.NULL, self.controller._player.state)
 
     def test_toggle_when_playing_pauses(self):
         self.controller.enqueue('12345')
         self.controller.play()
-        self.player.set_state.assert_has_calls([call(Gst.State.NULL), call(Gst.State.PLAYING)])
+        self.assertEqual(Gst.State.PLAYING, self.controller._player.state)
         self.controller.toggle_playback()
-        self.player.set_state.assert_has_calls([call(Gst.State.NULL), call(Gst.State.PLAYING), call(Gst.State.PAUSED)])
+        self.assertEqual(Gst.State.PAUSED, self.controller._player.state)
 
     def cleanup(self):
         while self.patchers:
