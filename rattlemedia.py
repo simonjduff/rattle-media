@@ -4,7 +4,9 @@ import config
 from gmusicapi import Mobileclient
 import logging
 import sys
-import gst
+import gi
+gi.require_version('Gst', '1.0')
+from gi.repository import Gst
 from collections import deque
 
 application = Flask(__name__)
@@ -48,37 +50,65 @@ class MusicPlayer:
 
 
 class RattleMediaController:
-    _player = gst.element_factory_make('playbin2', 'player')
+    _player = None
+    _event_thread = None
+    _bus = None
+
+    @staticmethod
+    def on_eos(self, bus, message):
+        print 'arrived'
+
     def __init__(self):
+        Gst.init(None)
+        RattleMediaController._player = Gst.ElementFactory.make('playbin', None)
+
+        if not RattleMediaController._player:
+            raise Exception('Player is None')
+
         api = Mobileclient()
         api.login(config.google_username, config.google_password)
         self._api = api
         self._logger = logging.getLogger('rattlemedia')
         self._music_player = MusicPlayer()
-        RattleMediaController._player.set_state(gst.STATE_NULL)
+        RattleMediaController._player.set_state(Gst.State.NULL)
+
+        if not RattleMediaController._bus:
+            bus = self._player.get_bus()
+            # bus.set_sync_handler(Gst.Bus.sync_signal_handler, self)
+            bus.add_signal_watch()
+            # bus.connect('sync-message::eos', RattleMediaController.on_eos)
+            bus.connect('message', self.on_eos)
+            RattleMediaController._bus = bus
+
+        print 'still running'
 
     def search(self, search_term):
         self._logger.debug('Searching for {0}'.format(search_term))
         return self._api.search_all_access(search_term)
 
     def enqueue(self, song_id):
+        self._logger.info('Enqueuing {0}'.format(song_id))
         self._music_player.enqueue(song_id)
 
     def play(self):
+        self._logger.info('Playing')
         try:
             track_url = self._api.get_stream_url(self._music_player.dequeue(), config.google_device_id)
             RattleMediaController._player.set_property('uri', track_url)
-            RattleMediaController._player.set_state(gst.STATE_PLAYING)
+            RattleMediaController._player.set_state(Gst.State.PLAYING)
         except EmptySongQueue:
             pass
 
     def stop(self):
-        self._player.set_state(gst.STATE_NULL)
+        self._logger.info('Stopping')
+        self._player.set_state(Gst.State.NULL)
 
     def toggle_playback(self):
-        self._player.set_state(gst.STATE_PAUSED)
+        self._logger.info('Toggling')
+        self._player.set_state(Gst.State.PAUSED)
 
     def play_album(self, album_id):
+        self._logger.info('Playing album {0}'.format(album_id))
         self.stop()
         album = self._api.get_album_info(album_id)
         tracks = album['tracks']
@@ -92,7 +122,7 @@ controller = RattleMediaController()
 
 @application.route('/')
 def index():
-    logger.info('starting')
+    logger.info('Loading home page')
     return redirect('/static/index.html')
 
 @socket_io.on('search')

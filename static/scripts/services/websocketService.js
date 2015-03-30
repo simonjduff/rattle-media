@@ -2,6 +2,7 @@
     var app = angular.module('rattleMediaApp');
     app.factory('socketio', function ($rootScope) {
         var socket = io.connect();
+
         return {
             on: function (eventName, callback) {
               socket.on(eventName, function () {
@@ -12,6 +13,11 @@
               });
             },
             emit: function (eventName, data, callback) {
+                if (!socket.socket.connected){
+                    socket = io.connect();
+                }
+
+
               socket.emit(eventName, data, function () {
                 var args = arguments;
                 $rootScope.$apply(function () {
