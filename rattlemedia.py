@@ -6,8 +6,10 @@ import logging
 import sys
 import gi
 gi.require_version('Gst', '1.0')
-from gi.repository import Gst
+from gi.repository import Gst, GLib
 from collections import deque
+from gevent import Greenlet
+import gevent
 
 application = Flask(__name__)
 application.config['SECRET_KEY'] = config.secret_key
@@ -55,8 +57,25 @@ class RattleMediaController:
     _bus = None
 
     @staticmethod
-    def on_eos(self, bus, message):
-        print 'arrived'
+    def watch_for_message(media_player):
+        bus = RattleMediaController._player.get_bus()
+        logger = logging.getLogger('rattlemedia')
+        if not bus:
+            raise Exception('Couldn\'t create bus')
+        # Ideally we'd be using signal_watch on bus to fire on an event basis
+        # but getting the GLib main loop to work with gevent has proved problematic
+        # Polling works, but isn't as elegant
+        while True:
+            message = bus.pop()
+            if message:
+                logger.debug('Message received: {0}'.format(message.type))
+                if message.type == Gst.MessageType.EOS:
+                    logger.info('End of stream received')
+                    RattleMediaController._player.set_state(Gst.State.NULL)
+                    media_player.play()
+
+            if not message:
+                gevent.sleep(0.5)
 
     def __init__(self):
         Gst.init(None)
@@ -72,13 +91,8 @@ class RattleMediaController:
         self._music_player = MusicPlayer()
         RattleMediaController._player.set_state(Gst.State.NULL)
 
-        if not RattleMediaController._bus:
-            bus = self._player.get_bus()
-            # bus.set_sync_handler(Gst.Bus.sync_signal_handler, self)
-            bus.add_signal_watch()
-            # bus.connect('sync-message::eos', RattleMediaController.on_eos)
-            bus.connect('message', self.on_eos)
-            RattleMediaController._bus = bus
+        self._logger.info('Starting to watch for gstreamer signals')
+        Greenlet.spawn(RattleMediaController.watch_for_message, self)
 
         print 'still running'
 
