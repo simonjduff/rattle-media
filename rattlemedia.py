@@ -1,33 +1,12 @@
-from flask import Flask, redirect
-from flask_socketio import SocketIO, emit
 import config
 from gmusicapi import Mobileclient
 import logging
-import sys
 import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst, GLib
 from collections import deque
 from gevent import Greenlet
 import gevent
-
-application = Flask(__name__)
-application.config['SECRET_KEY'] = config.secret_key
-socket_io = SocketIO(application)
-
-logger = None
-
-def setup_logging():
-    global logger
-    log_formatter = logging.Formatter('[%(asctime)s] %(levelname)s (%(process)d) %(module)s: %(message)s')
-    stream_handle = logging.StreamHandler(sys.stdout)
-    stream_handle.setLevel(logging.DEBUG)
-    stream_handle.setFormatter(log_formatter)
-    logger = logging.getLogger('rattlemedia')
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(stream_handle)
-
-setup_logging()
 
 
 class EmptySongQueue(Exception):
@@ -53,8 +32,23 @@ class MusicPlayer:
 
 class RattleMediaController:
     _player = None
-    _event_thread = None
-    _bus = None
+
+    def __init__(self):
+        Gst.init(None)
+        RattleMediaController._player = Gst.ElementFactory.make('playbin', None)
+
+        if not RattleMediaController._player:
+            raise Exception('Player is None')
+
+        api = Mobileclient()
+        api.login(config.google_username, config.google_password)
+        self._api = api
+        self._logger = logging.getLogger('rattlemedia')
+        self._music_player = MusicPlayer()
+        RattleMediaController._player.set_state(Gst.State.NULL)
+
+        self._logger.info('Starting to watch for gstreamer signals')
+        Greenlet.spawn(RattleMediaController.watch_for_message, self)
 
     @staticmethod
     def watch_for_message(media_player):
@@ -76,25 +70,6 @@ class RattleMediaController:
 
             if not message:
                 gevent.sleep(0.5)
-
-    def __init__(self):
-        Gst.init(None)
-        RattleMediaController._player = Gst.ElementFactory.make('playbin', None)
-
-        if not RattleMediaController._player:
-            raise Exception('Player is None')
-
-        api = Mobileclient()
-        api.login(config.google_username, config.google_password)
-        self._api = api
-        self._logger = logging.getLogger('rattlemedia')
-        self._music_player = MusicPlayer()
-        RattleMediaController._player.set_state(Gst.State.NULL)
-
-        self._logger.info('Starting to watch for gstreamer signals')
-        Greenlet.spawn(RattleMediaController.watch_for_message, self)
-
-        print 'still running'
 
     def search(self, search_term):
         self._logger.debug('Searching for {0}'.format(search_term))
@@ -130,42 +105,3 @@ class RattleMediaController:
         for track in tracks:
             self._music_player.enqueue(track['nid'])
         self.play()
-
-
-controller = RattleMediaController()
-
-@application.route('/')
-def index():
-    logger.info('Loading home page')
-    return redirect('/static/index.html')
-
-@socket_io.on('search')
-def search(search_term):
-    results = controller.search(search_term)
-    print results
-    emit('search complete', results)
-
-# This isn't quite right as an API. Play should probably clear the queue then play the specified song.
-@socket_io.on('play song')
-def play_song(song_id):
-    logger.info('Playing song {0}'.format(song_id))
-    controller.enqueue(song_id)
-    controller.play()
-
-@socket_io.on('stop')
-def stop(message):
-    logger.info('stopping')
-    controller.stop()
-
-@socket_io.on('toggle playback')
-def toggle_playback(message):
-    logger.info('toggling')
-    controller.toggle_playback()
-
-@socket_io.on('play album')
-def play_album(album_id):
-    logger.info('playing album {0}'.format(album_id))
-    controller.play_album(album_id)
-
-if __name__ == '__main__':
-    socket_io.run(application)
