@@ -107,8 +107,12 @@ class TestStopped(TestBase):
         self.assertEqual(self.controller._states[Gst.State.PLAYING], self.controller.state)
         self.assertEqual(0, len(self.controller._queue))
 
-    def test_stop(self):
+    def test_stop_stays_stopped(self):
         self.controller.stop()
+        self.assertEqual(self.controller._states[Gst.State.NULL], self.controller.state)
+
+    def test_toggle_stays_stopped(self):
+        self.controller.toggle_playback()
         self.assertEqual(self.controller._states[Gst.State.NULL], self.controller.state)
 
 
@@ -118,7 +122,7 @@ class TestPlaying(TestBase):
         self.player.state = Gst.State.PLAYING
         self.controller.update_state()
 
-    def test_initial(self):
+    def test_initial_state(self):
         self.assertEqual(self.controller._states[Gst.State.PLAYING], self.controller.state)
 
     def test_eos_plays_next_track(self):
@@ -135,49 +139,33 @@ class TestPlaying(TestBase):
         gevent.sleep(1)
         self.assertEqual(self.controller._states[Gst.State.NULL], self.controller.state)
 
+    def test_stop_stops(self):
+        self.controller.stop()
+        self.assertEqual(self.controller._states[Gst.State.NULL], self.controller.state)
 
-class TestController(TestCase):
-    fake_song_urls = {'12345': 'http://testurl1.example.com', '67890': 'http://testurl2.example.com'}
+    def test_toggle_pauses(self):
+        self.controller.toggle_playback()
+        self.assertEqual(self.controller._states[Gst.State.PAUSED], self.controller.state)
 
+class TestPaused(TestBase):
     def setUp(self):
-        print 'Starting setup'
+        TestBase.setUp(self)
+        self.player.state = Gst.State.PAUSED
+        self.controller.update_state()
 
-        def get_fake_url(song_id, device_id):
-            return TestController.fake_song_urls[song_id]
+    def test_initial_state(self):
+        self.assertEqual(self.controller._states[Gst.State.PAUSED], self.controller.state)
 
-        def set_state(state):
-            self.player.state = state
+    def test_stop_stops(self):
+        self.controller.stop()
+        self.assertEqual(self.controller._states[Gst.State.NULL], self.controller.state)
 
-        def get_state(timeout):
-            return (Gst.StateChangeReturn.SUCCESS, self.player.state, Gst.State.NULL)
+    def test_toggle_plays(self):
+        self.controller.toggle_playback()
+        self.assertEqual(self.controller._states[Gst.State.PLAYING], self.controller.state)
 
-        self.patchers = []
 
-        mobile_client_patcher = patch('rattlemediaplayer.Mobileclient')
-        self.patchers.append(mobile_client_patcher)
-        mobile_client = mobile_client_patcher.start()
-        mobile_client.return_value.get_stream_url = MagicMock(side_effect=get_fake_url)
-        self.mobile_client = mobile_client
-
-        config_patcher = patch('rattlemediaplayer.config')
-        self.patchers.append(config_patcher)
-        config = config_patcher.start()
-        config.google_username = 'test_username'
-        config.google_password = 'test_password'
-        self.config = config
-
-        self.player = MagicMock()
-        self.player.set_state = set_state
-        self.player.get_state = get_state
-        player_make_patcher = patch.object(rattlemediaplayer.Gst.ElementFactory, 'make')
-        self.patchers.append(player_make_patcher)
-        player_make = player_make_patcher.start()
-        player_make.return_value = self.player
-
-        self.controller = rattlemediaplayer.RattleMediaController()
-
-        self.addCleanup(self.cleanup)
-
+class TestController(TestBase):
     def test_creating_controller_logs_into_google(self):
         self.mobile_client.return_value.login.assert_called_once_with('test_username', 'test_password')
 
@@ -197,34 +185,3 @@ class TestController(TestCase):
         self.controller.enqueue(song_id_2)
         self.assertEqual(2, len(self.controller._queue))
         self.assertEqual(song_id_2, self.controller._queue[1])
-
-    def test_play_removes_song_from_queue_and_plays(self):
-        self.controller.enqueue('12345')
-        self.controller.play()
-        self.mobile_client.return_value.get_stream_url.assert_called_once_with('12345', self.config.google_device_id)
-        self.assertEqual(Gst.State.PLAYING, self.controller._player.state)
-        self.player.set_property.assert_called_once_with('uri', TestController.fake_song_urls['12345'])
-        self.assertEqual(0, len(self.controller._queue))
-
-    def test_play_empty_queue_doesnt_play(self):
-        if len(self.controller._queue):
-            print ' '.join(str(p) for p in self.controller._queue)
-        self.assertEqual(0, len(self.controller._queue))
-        self.controller.play()
-        self.assertEqual(Gst.State.NULL, self.controller._player.state)
-
-    def test_stop_nulls_state(self):
-        self.controller.stop()
-        self.assertEqual(Gst.State.NULL, self.controller._player.state)
-
-    def test_toggle_when_playing_pauses(self):
-        self.controller.enqueue('12345')
-        self.controller.play()
-        self.assertEqual(Gst.State.PLAYING, self.controller._player.state)
-        self.controller.toggle_playback()
-        self.assertEqual(Gst.State.PAUSED, self.controller._player.state)
-
-    def cleanup(self):
-        while self.patchers:
-            patcher = self.patchers.pop()
-            patcher.stop()
