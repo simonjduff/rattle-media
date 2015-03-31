@@ -9,7 +9,7 @@ import gevent
 
 
 def setup_logging():
-    log_formatter = logging.Formatter('[%(asctime)s] %(levelname)s (%(process)d) %(module)s: %(message)s')
+    log_formatter = logging.Formatter('[%(asctime)s] %(levelname)s (%(process)d) %(module)s %(funcName)s: %(message)s')
     stream_handle = logging.StreamHandler(sys.stdout)
     stream_handle.setLevel(logging.DEBUG)
     stream_handle.setFormatter(log_formatter)
