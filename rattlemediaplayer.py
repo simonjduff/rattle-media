@@ -106,7 +106,8 @@ class RattleMediaController:
                 logger.debug('Message received: {0}'.format(message.type))
                 if message.type == Gst.MessageType.EOS:
                     logger.info('End of stream received')
-                    RattleMediaController._player.set_state(Gst.State.NULL)
+                    media_player._player.set_state(Gst.State.NULL)
+                    media_player.update_state()
                     media_player.play()
                 elif message.type == Gst.MessageType.STATE_CHANGED:
                     logger.debug('State changed {0}'.format(media_player._player.get_state(100)[1]))
