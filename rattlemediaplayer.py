@@ -22,7 +22,7 @@ class RattleMediaPlayer:
         if not self._player:
             raise Exception('Player is None')
 
-        self.set_state(PlayerStates.Stopped)
+        self._player.set_state(Gst.State.NULL)
 
         self._logger.info('Starting to watch for gstreamer signals')
         Greenlet.spawn(self.watch_for_message)
@@ -48,15 +48,18 @@ class RattleMediaPlayer:
             if not message:
                 gevent.sleep(0.5)
 
-    def set_state(self, state):
-        if state == PlayerStates.Stopped:
-            self._player.set_state(Gst.State.NULL)
-        elif state == PlayerStates.Paused:
-            self._player.set_state(Gst.State.PAUSED)
-        elif state == PlayerStates.Playing:
-            self._player.set_state(Gst.State.PLAYING)
-        else:
-            raise Exception('Unknown state')
+    def _set_state(self, state):
+        try:
+            if state == PlayerStates.Stopped:
+                self._player.set_state(Gst.State.NULL)
+            elif state == PlayerStates.Paused:
+                self._player.set_state(Gst.State.PAUSED)
+            elif state == PlayerStates.Playing:
+                self._player.set_state(Gst.State.PLAYING)
+            else:
+                raise Exception('Unknown state')
+        finally:
+            self._controller.update_state()
 
     def get_state(self):
         current_state = self._player.get_state(Gst.CLOCK_TIME_NONE)[1]
@@ -71,16 +74,19 @@ class RattleMediaPlayer:
 
     def play_track(self, track_url):
             self._player.set_property('uri', track_url)
-            self._player.set_state(Gst.State.PLAYING)
+            self._set_state(PlayerStates.Playing)
 
     def stop(self):
-        self.set_state(PlayerStates.Stopped)
+        self._set_state(PlayerStates.Stopped)
 
     def pause(self):
-        self.set_state(PlayerStates.Paused)
+        self._set_state(PlayerStates.Paused)
+
+    def play(self):
+        self._set_state(PlayerStates.Playing)
 
 
-class PlayerState:
+class ControllerState:
     def __init__(self, controller, player):
         self._player = player
         self._controller = controller
@@ -94,29 +100,27 @@ class PlayerState:
             self._player.play_track(track_url)
         except IndexError:
             self._logger.info('Queue empty. Stopping.')
-            self._player.set_state(PlayerStates.Stopped)
+            self._player.stop()
         finally:
             self._controller.update_state()
 
     def stop(self):
         self._logger.info('Stopping')
-        self._player.set_state(PlayerStates.Stopped)
-        self._controller.update_state()
+        self._player.stop()
 
     def toggle(self):
         pass
 
 
-class PlayerStatePlaying(PlayerState):
+class ControllerStatePlaying(ControllerState):
     def play(self):
         pass
 
     def toggle(self):
-        self._player.set_state(PlayerStates.Paused)
-        self._controller.update_state()
+        self._player.pause()
 
 
-class PlayerStateStopped(PlayerState):
+class ControllerStateStopped(ControllerState):
     def stop(self):
         pass
 
@@ -124,10 +128,9 @@ class PlayerStateStopped(PlayerState):
         pass
 
 
-class PlayerStatePaused(PlayerState):
+class ControllerStatePaused(ControllerState):
     def play(self):
-        self._player.set_state(PlayerStates.Playing)
-        self._controller.update_state()
+        self._player.play()
 
     def toggle(self):
         self.play()
@@ -146,17 +149,16 @@ class RattleMediaController:
 
         self._queue = deque([])
 
-        RattleMediaController._states = {PlayerStates.Paused: PlayerStatePaused(self, self._player),
-                                         PlayerStates.Stopped: PlayerStateStopped(self, self._player),
-                                         PlayerStates.Playing: PlayerStatePlaying(self, self._player),
-                                         'Unknown': PlayerState(self, self._player)}
+        RattleMediaController._states = {PlayerStates.Paused: ControllerStatePaused(self, self._player),
+                                         PlayerStates.Stopped: ControllerStateStopped(self, self._player),
+                                         PlayerStates.Playing: ControllerStatePlaying(self, self._player),
+                                         'Unknown': ControllerState(self, self._player)}
 
-        self.state = PlayerState(self, self._player)
+        self.state = ControllerState(self, self._player)
         self.update_state()
 
     def end_of_stream_event(self):
-        self._player.set_state(PlayerStates.Stopped)
-        self.update_state()
+        self._player.stop()
         self.play()
 
     def search(self, search_term):
@@ -190,13 +192,13 @@ class RattleMediaController:
             self._queue.append(track['nid'])
 
     def update_state(self):
+        current_state = None
         try:
-            logger = logging.getLogger('rattlemedia')
             current_state = self._player.get_state()
-            logger.debug('Switching state to {0}'.format(current_state))
+            self._logger.debug('Switching state to {0}'.format(current_state))
             self.state = self._states[current_state]
-            logger.info('Switched state to {0}'.format(self.state))
+            self._logger.info('Switched state to {0}'.format(self.state))
         except KeyError:
-            logger.warn('Switching to unknown state {0}'.format(current_state))
+            self._logger.warn('Switching to unknown state {0}'.format(current_state))
             self.state = self._states['Unknown']
 
