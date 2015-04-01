@@ -192,7 +192,7 @@ class TestController(TestBase):
         self.assertEqual(2, len(self.controller._queue))
         self.assertEqual(song_id_2, self.controller._queue[1])
 
-    def test_queue_album_queues_album(self):
+    def test_enqueue_album_queues_album(self):
         self.controller.enqueue_album('album1')
         self.mobile_client.return_value.get_album_info.assert_called_once_with('album1')
         self.assertEqual(2, len(self.controller._queue))

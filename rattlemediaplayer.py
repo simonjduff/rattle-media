@@ -134,11 +134,8 @@ class RattleMediaController:
     def play_album(self, album_id):
         self._logger.info('Playing album {0}'.format(album_id))
         self.stop()
-        album = self._api.get_album_info(album_id)
-        tracks = album['tracks']
         self._queue.clear()
-        for track in tracks:
-            self._queue.append(track['nid'])
+        self.enqueue_album(album_id)
         self.play()
 
     def enqueue_album(self, album_id):
