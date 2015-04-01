@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import patch, MagicMock, call
+from mock import patch, MagicMock
 import rattlemediaplayer
 from gi.repository import Gst
 import logging
