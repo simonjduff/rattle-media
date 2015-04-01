@@ -14,9 +14,8 @@ class PlayerStates:
 
 
 class RattleMediaPlayer:
-    def __init__(self, controller):
+    def __init__(self):
         self._logger = logging.getLogger('rattlemedia')
-        self._controller = controller
         Gst.init(None)
         self._player = Gst.ElementFactory.make('playbin', None)
         if not self._player:
@@ -41,7 +40,7 @@ class RattleMediaPlayer:
                 self._logger.debug('Message received: {0}'.format(message.type))
                 if message.type == Gst.MessageType.EOS:
                     self._logger.info('End of stream received')
-                    self._controller.end_of_stream_event()
+                    self.end_of_stream_event_handler()
                 elif message.type == Gst.MessageType.STATE_CHANGED:
                     self._logger.debug('State changed {0}'.format(self._player.get_state(100)[1]))
 
@@ -59,7 +58,7 @@ class RattleMediaPlayer:
             else:
                 raise Exception('Unknown state')
         finally:
-            self._controller.update_state()
+            self.state_change_event_handler()
 
     def get_state(self):
         current_state = self._player.get_state(Gst.CLOCK_TIME_NONE)[1]
@@ -84,6 +83,14 @@ class RattleMediaPlayer:
 
     def play(self):
         self._set_state(PlayerStates.Playing)
+
+    # Override with function to call on end of stream
+    def end_of_stream_event_handler(self):
+        pass
+
+    # Override with function to call on state change
+    def state_change_event_handler(self):
+        pass
 
 
 class ControllerState:
@@ -145,7 +152,9 @@ class RattleMediaController:
         self._api = api
         self._logger = logging.getLogger('rattlemedia')
 
-        self._player = RattleMediaPlayer(self)
+        self._player = RattleMediaPlayer()
+        self._player.end_of_stream_event_handler = self.end_of_stream_event
+        self._player.state_change_event_handler = self.update_state
 
         self._queue = deque([])
 
