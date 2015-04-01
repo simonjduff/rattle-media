@@ -6,6 +6,7 @@ import logging
 import sys
 from collections import deque
 import gevent
+from rattlemediaplayer import PlayerStates
 
 logger = None
 
@@ -95,30 +96,30 @@ class TestBase(TestCase):
 class TestStopped(TestBase):
     def test_initial_state(self):
         self.assertEqual(0, len(self.controller._queue))
-        self.assertEqual(self.controller._states[Gst.State.NULL], self.controller.state)
+        self.assertEqual(self.controller._states[PlayerStates.Stopped], self.controller.state)
 
     def test_enqueue(self):
         self.controller.enqueue('12345')
         self.assertEqual(1, len(self.controller._queue))
-        self.assertEqual(self.controller._states[Gst.State.NULL], self.controller.state)
+        self.assertEqual(self.controller._states[PlayerStates.Stopped], self.controller.state)
 
     def test_play_empty(self):
         self.controller.play()
-        self.assertEqual(self.controller._states[Gst.State.NULL], self.controller.state)
+        self.assertEqual(self.controller._states[PlayerStates.Stopped], self.controller.state)
 
     def test_play_with_song(self):
         self.controller.enqueue('12345')
         self.controller.play()
-        self.assertEqual(self.controller._states[Gst.State.PLAYING], self.controller.state)
+        self.assertEqual(self.controller._states[PlayerStates.Playing], self.controller.state)
         self.assertEqual(0, len(self.controller._queue))
 
     def test_stop_stays_stopped(self):
         self.controller.stop()
-        self.assertEqual(self.controller._states[Gst.State.NULL], self.controller.state)
+        self.assertEqual(self.controller._states[PlayerStates.Stopped], self.controller.state)
 
     def test_toggle_stays_stopped(self):
         self.controller.toggle_playback()
-        self.assertEqual(self.controller._states[Gst.State.NULL], self.controller.state)
+        self.assertEqual(self.controller._states[PlayerStates.Stopped], self.controller.state)
 
 
 class TestPlaying(TestBase):
@@ -128,29 +129,29 @@ class TestPlaying(TestBase):
         self.controller.update_state()
 
     def test_initial_state(self):
-        self.assertEqual(self.controller._states[Gst.State.PLAYING], self.controller.state)
+        self.assertEqual(self.controller._states[PlayerStates.Playing], self.controller.state)
 
     def test_eos_plays_next_track(self):
         self.controller.enqueue('12345')
         TestBase.add_bus_message(self, Gst.MessageType.EOS)
         # We need to give the greenlet polling mechanism time to check for a message
         gevent.sleep(0.5)
-        self.assertEqual(self.controller._states[Gst.State.PLAYING], self.controller.state)
+        self.assertEqual(self.controller._states[PlayerStates.Playing], self.controller.state)
         self.assertEqual(0, len(self.controller._queue))
 
     def test_eos_empty_queue_stops(self):
         TestBase.add_bus_message(self, Gst.MessageType.EOS)
         # We need to give the greenlet polling mechanism time to check for a message
         gevent.sleep(0.5)
-        self.assertEqual(self.controller._states[Gst.State.NULL], self.controller.state)
+        self.assertEqual(self.controller._states[PlayerStates.Stopped], self.controller.state)
 
     def test_stop_stops(self):
         self.controller.stop()
-        self.assertEqual(self.controller._states[Gst.State.NULL], self.controller.state)
+        self.assertEqual(self.controller._states[PlayerStates.Stopped], self.controller.state)
 
     def test_toggle_pauses(self):
         self.controller.toggle_playback()
-        self.assertEqual(self.controller._states[Gst.State.PAUSED], self.controller.state)
+        self.assertEqual(self.controller._states[PlayerStates.Paused], self.controller.state)
 
 
 class TestPaused(TestBase):
@@ -160,15 +161,15 @@ class TestPaused(TestBase):
         self.controller.update_state()
 
     def test_initial_state(self):
-        self.assertEqual(self.controller._states[Gst.State.PAUSED], self.controller.state)
+        self.assertEqual(self.controller._states[PlayerStates.Paused], self.controller.state)
 
     def test_stop_stops(self):
         self.controller.stop()
-        self.assertEqual(self.controller._states[Gst.State.NULL], self.controller.state)
+        self.assertEqual(self.controller._states[PlayerStates.Stopped], self.controller.state)
 
     def test_toggle_plays(self):
         self.controller.toggle_playback()
-        self.assertEqual(self.controller._states[Gst.State.PLAYING], self.controller.state)
+        self.assertEqual(self.controller._states[PlayerStates.Playing], self.controller.state)
 
 
 class TestController(TestBase):
@@ -198,4 +199,4 @@ class TestController(TestBase):
         self.assertEqual(2, len(self.controller._queue))
         self.assertEqual('track1', self.controller._queue[0])
         self.assertEqual('track2', self.controller._queue[1])
-        self.assertEqual(self.controller._states[Gst.State.NULL], self.controller.state)
+        self.assertEqual(self.controller._states[PlayerStates.Stopped], self.controller.state)
