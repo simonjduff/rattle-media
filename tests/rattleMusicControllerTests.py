@@ -7,8 +7,10 @@ import sys
 from collections import deque
 import gevent
 
+logger = None
 
 def setup_logging():
+    global logger
     log_formatter = logging.Formatter('[%(asctime)s] %(levelname)s (%(process)d) %(module)s %(funcName)s: %(message)s')
     stream_handle = logging.StreamHandler(sys.stdout)
     stream_handle.setLevel(logging.DEBUG)
@@ -184,3 +186,6 @@ class TestController(TestBase):
         self.controller.enqueue(song_id_2)
         self.assertEqual(2, len(self.controller._queue))
         self.assertEqual(song_id_2, self.controller._queue[1])
+
+    def test_queue_album_queues_album(self):
+        logger.warn('NOT IMPLEMENTED')
