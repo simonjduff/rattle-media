@@ -24,6 +24,7 @@ setup_logging()
 
 class TestBase(TestCase):
     fake_song_urls = {'12345': 'http://testurl1.example.com', '67890': 'http://testurl2.example.com'}
+    fake_albums = {'album1': {'tracks':[{'nid': 'track1'}, {'nid': 'track2'}]}}
 
     def add_bus_message(self, message_type):
         message = type('Gst.Message', (), {})()
@@ -46,6 +47,9 @@ class TestBase(TestCase):
         def get_fake_url(song_id, device_id):
             return TestController.fake_song_urls[song_id]
 
+        def get_fake_album(album_id):
+            return TestController.fake_albums[album_id]
+
         def set_state(state):
             self.player.state = state
 
@@ -59,6 +63,7 @@ class TestBase(TestCase):
         self.patchers.append(mobile_client_patcher)
         mobile_client = mobile_client_patcher.start()
         mobile_client.return_value.get_stream_url = MagicMock(side_effect=get_fake_url)
+        mobile_client.return_value.get_album_info = MagicMock(side_effect=get_fake_album)
         self.mobile_client = mobile_client
 
         config_patcher = patch('rattlemediaplayer.config')
@@ -129,14 +134,14 @@ class TestPlaying(TestBase):
         self.controller.enqueue('12345')
         TestBase.add_bus_message(self, Gst.MessageType.EOS)
         # We need to give the greenlet polling mechanism time to check for a message
-        gevent.sleep(1)
+        gevent.sleep(0.5)
         self.assertEqual(self.controller._states[Gst.State.PLAYING], self.controller.state)
         self.assertEqual(0, len(self.controller._queue))
 
     def test_eos_empty_queue_stops(self):
         TestBase.add_bus_message(self, Gst.MessageType.EOS)
         # We need to give the greenlet polling mechanism time to check for a message
-        gevent.sleep(1)
+        gevent.sleep(0.5)
         self.assertEqual(self.controller._states[Gst.State.NULL], self.controller.state)
 
     def test_stop_stops(self):
@@ -188,4 +193,9 @@ class TestController(TestBase):
         self.assertEqual(song_id_2, self.controller._queue[1])
 
     def test_queue_album_queues_album(self):
-        logger.warn('NOT IMPLEMENTED')
+        self.controller.enqueue_album('album1')
+        self.mobile_client.return_value.get_album_info.assert_called_once_with('album1')
+        self.assertEqual(2, len(self.controller._queue))
+        self.assertEqual('track1', self.controller._queue[0])
+        self.assertEqual('track2', self.controller._queue[1])
+        self.assertEqual(self.controller._states[Gst.State.NULL], self.controller.state)

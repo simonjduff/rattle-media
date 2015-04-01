@@ -141,6 +141,12 @@ class RattleMediaController:
             self._queue.append(track['nid'])
         self.play()
 
+    def enqueue_album(self, album_id):
+        album = self._api.get_album_info(album_id)
+        tracks = album['tracks']
+        for track in tracks:
+            self._queue.append(track['nid'])
+
     def update_state(self):
         try:
             logger = logging.getLogger('rattlemedia')
