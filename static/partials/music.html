@@ -10,28 +10,9 @@
             <input type="submit" id="searchButton" value="Search" />
         </form>
     </div>
-    <div class="row">
-        <h1>Artists</h1>
-        <div class="col-md-4 artistListing" ng-repeat="artist in searchResults.artist_hits">
-            <img class="artistArtwork" src="{{artist.artist.artistArtRef}}" alt="Artwork for artist {{artist.artist.name}}" title="{{artist.artist.name}}" />
-            {{artist.artist.name}}
-        </div>
-    </div>
-    <div class="row">
-        <h1>Albums</h1>
-        <div class="col-md-4 albumListing" ng-repeat="album in searchResults.album_hits" ng-click="playAlbum(album.album.albumId)">
-            <img class="albumArtwork" src="{{album.album.albumArtRef}}" alt="Artwork for album {{album.album.name}}" title="{{album.album.name}}" />
-            {{album.album.name}}
-        </div>
-    </div>
-    <div class="row">
-        <h1>Tracks</h1>
-        <div class="col-md-4 trackListing" ng-repeat="track in searchResults.song_hits">
-            <img class="trackArtwork" src="{{track.track.albumArtRef[0].url}}" alt="Artwork for track {{track.track.title}}" title="{{track.track.title}}" />
-            <a class="trackTitle" ng-click="playSong(track.track.storeId)">{{track.track.title}}</a>
-            <div class="playButton"></div>
-        </div>
-    </div>
+    <div rattle-artists></div>
+    <div rattle-albums></div>
+    <div rattle-tracks></div>
 </div>
 <div class="player">
     <div class="playerControls">

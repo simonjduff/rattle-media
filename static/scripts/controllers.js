@@ -27,4 +27,22 @@
             socketio.emit('play album', albumId);
         }
     }]);
+
+    controllers.directive('rattleArtists', function(){
+        return{
+            templateUrl: 'partials/artists.html'
+        }
+    });
+
+    controllers.directive('rattleAlbums', function(){
+        return{
+            templateUrl: 'partials/albums.html'
+        }
+    });
+
+    controllers.directive('rattleTracks', function(){
+        return{
+            templateUrl: 'partials/tracks.html'
+        }
+    });
 })();
