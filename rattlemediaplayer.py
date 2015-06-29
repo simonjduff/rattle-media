@@ -148,7 +148,7 @@ class RattleMediaController:
 
     def __init__(self):
         api = Mobileclient()
-        api.login(config.google_username, config.google_password)
+        api.login(config.google_username, config.google_password, config.google_device_id)
         self._api = api
         self._logger = logging.getLogger('rattlemedia')
 
