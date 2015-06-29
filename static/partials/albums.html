@@ -1,4 +1,4 @@
-<div class="row">
+<div class="row" ng-show="searchResults.album_hits">
     <h1>Albums</h1>
     <div class="col-md-4 albumListing" ng-repeat="album in searchResults.album_hits" ng-click="playAlbum(album.album.albumId)">
         <img class="albumArtwork" src="{{album.album.albumArtRef}}" alt="Artwork for album {{album.album.name}}" title="{{album.album.name}}" />

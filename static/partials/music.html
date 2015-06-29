@@ -13,11 +13,11 @@
     <div rattle-artists></div>
     <div rattle-albums></div>
     <div rattle-tracks></div>
+    <h1 ng-show="(!searchResults.artist_hits && !searchResults.album_hits && !searchResults.song_hits)">No results found</h1>
 </div>
 <div class="player">
     <div class="playerControls">
         <input type="button" value="Stop" ng-click="stopPlaying()" />
-<!--        <input type="button" value="Play/Pause" ng-click="togglePlayback()" />-->
         <div class="playButton" ng-click="togglePlayback()"></div>
     </div>
 </div>

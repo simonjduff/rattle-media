@@ -1,4 +1,4 @@
-<div class="row">
+<div class="row" ng-show="searchResults.song_hits">
     <h1>Tracks</h1>
     <div class="col-md-4 trackListing" ng-repeat="track in searchResults.song_hits">
         <img class="trackArtwork" src="{{track.track.albumArtRef[0].url}}" alt="Artwork for track {{track.track.title}}" title="{{track.track.title}}" />

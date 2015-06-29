@@ -1,4 +1,4 @@
-<div class="row">
+<div class="row" ng-show="searchResults.artist_hits">
     <h1>Artists</h1>
     <div class="col-md-4 artistListing" ng-repeat="artist in searchResults.artist_hits">
         <img class="artistArtwork" src="{{artist.artist.artistArtRef}}" alt="Artwork for artist {{artist.artist.name}}" title="{{artist.artist.name}}" />
