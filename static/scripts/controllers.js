@@ -10,6 +10,11 @@
             $scope.searchResults = searchResults;
         });
 
+        socketio.on('state change', function(new_state){
+            console.log('Changing state to ' + new_state);
+            $scope.state = new_state;
+        });
+
         $scope.playSong = function(songId){
             console.log('playing song ' + songId);
             socketio.emit('play song', songId);

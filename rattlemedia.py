@@ -23,7 +23,11 @@ def setup_logging():
 
 setup_logging()
 
+def state_change_callback(new_state):
+    emit('state change', new_state)
+
 controller = RattleMediaController()
+controller.state_change_callback = state_change_callback
 
 @application.route('/')
 def index():

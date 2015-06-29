@@ -8,9 +8,9 @@ import gevent
 
 
 class PlayerStates:
-    Stopped = 0
-    Paused = 1
-    Playing = 2
+    Stopped = "Stopped"
+    Paused = "Paused"
+    Playing = "Playing"
 
 
 class RattleMediaPlayer:
@@ -210,4 +210,9 @@ class RattleMediaController:
         except KeyError:
             self._logger.warn('Switching to unknown state {0}'.format(current_state))
             self.state = self._states['Unknown']
+        finally:
+            self.state_change_callback(current_state)
 
+    # Override with callback if required
+    def state_change_callback(self, new_state):
+        pass
