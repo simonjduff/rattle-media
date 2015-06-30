@@ -72,6 +72,7 @@ class TestBase(TestCase):
         config = config_patcher.start()
         config.google_username = 'test_username'
         config.google_password = 'test_password'
+        config.google_device_id = 'test_device_id'
         self.config = config
 
         self.player = MagicMock()
@@ -121,6 +122,10 @@ class TestStopped(TestBase):
         self.controller.toggle_playback()
         self.assertEqual(self.controller._states[PlayerStates.Stopped], self.controller.state)
 
+    def test_next_stays_stopped(self):
+        self.controller.next()
+        self.assertEqual(self.controller._states[PlayerStates.Stopped], self.controller.state)
+
 
 class TestPlaying(TestBase):
     def setUp(self):
@@ -153,6 +158,18 @@ class TestPlaying(TestBase):
         self.controller.toggle_playback()
         self.assertEqual(self.controller._states[PlayerStates.Paused], self.controller.state)
 
+    def test_next_empty_queue_stops(self):
+        self.controller.next()
+        self.assertEqual(self.controller._states[PlayerStates.Stopped], self.controller.state)
+        self.assertEqual(0, len(self.controller._queue))
+
+    def test_next_plays_next_track(self):
+        self.controller.enqueue('12345')
+        self.controller.next()
+        self.assertEqual(self.controller._states[PlayerStates.Playing], self.controller.state)
+        self.assertEqual(0, len(self.controller._queue))
+
+
 
 class TestPaused(TestBase):
     def setUp(self):
@@ -174,7 +191,7 @@ class TestPaused(TestBase):
 
 class TestController(TestBase):
     def test_creating_controller_logs_into_google(self):
-        self.mobile_client.return_value.login.assert_called_once_with('test_username', 'test_password')
+        self.mobile_client.return_value.login.assert_called_once_with('test_username', 'test_password', 'test_device_id')
 
     def test_creating_controller_sets_state_null(self):
         self.assertEqual(Gst.State.NULL, self.player.state)

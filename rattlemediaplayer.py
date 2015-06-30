@@ -99,7 +99,7 @@ class ControllerState:
         self._controller = controller
         self._logger = logging.getLogger('rattlemedia')
 
-    def play(self):
+    def __play_next_track(self):
         self._logger.info('Playing')
         try:
             # This sucks a bit. Should state own the api?
@@ -111,12 +111,18 @@ class ControllerState:
         finally:
             self._controller.update_state()
 
+    def play(self):
+        self.__play_next_track()
+
     def stop(self):
         self._logger.info('Stopping')
         self._player.stop()
 
     def toggle(self):
         pass
+
+    def next(self):
+        self.__play_next_track()
 
 
 class ControllerStatePlaying(ControllerState):
@@ -186,6 +192,9 @@ class RattleMediaController:
 
     def toggle_playback(self):
         self.state.toggle()
+
+    def next(self):
+        self.state.next()
 
     def play_album(self, album_id):
         self._logger.info('Playing album {0}'.format(album_id))
