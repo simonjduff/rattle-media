@@ -183,6 +183,7 @@ class RattleMediaController:
 
     def stop(self):
         self.state.stop()
+        self._queue.clear()
 
     def toggle_playback(self):
         self.state.toggle()
@@ -190,7 +191,6 @@ class RattleMediaController:
     def play_album(self, album_id):
         self._logger.info('Playing album {0}'.format(album_id))
         self.stop()
-        self._queue.clear()
         self.enqueue_album(album_id)
         self.play()
 
